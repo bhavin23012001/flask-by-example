@@ -6,39 +6,36 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2  # ✅ Use correct demand syntax
+    - agent -equals agent2
 
 variables:
-  python_version: '3.11'
-  venv_dir: 'venv'
+  python_version: '3.11.9'
+  python_folder: 'python-portable'
 
 stages:
 - stage: BuildAndTest
   displayName: Build and Test
   jobs:
   - job: Build
-    displayName: 'Run Tests on Self-hosted Agent'
+    displayName: 'Install and Test Python App'
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python_version)'
-        addToPath: true
 
     - script: |
-        python -m venv $(venv_dir)
-        call $(venv_dir)\Scripts\activate.bat
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-      displayName: 'Install dependencies (Windows)'
+        echo "Downloading Python $(python_version)..."
+        curl -L -o python-embed.zip https://www.python.org/ftp/python/$(python_version)/python-$(python_version)-embed-amd64.zip
+        mkdir $(python_folder)
+        tar -xf python-embed.zip -C $(python_folder)
+      displayName: 'Download and extract portable Python'
 
     - script: |
-        call $(venv_dir)\Scripts\activate.bat
-        pytest --junitxml=test-results.xml
+        set PATH=$(Build.SourcesDirectory)\$(python_folder);%PATH%
+        echo "Installing pip..."
+        curl -O https://bootstrap.pypa.io/get-pip.py
+        $(Build.SourcesDirectory)\$(python_folder)\python.exe get-pip.py
+        $(Build.SourcesDirectory)\$(python_folder)\python.exe -m pip install -r requirements.txt
+      displayName: 'Install pip and dependencies'
+
+    - script: |
+        set PATH=$(Build.SourcesDirectory)\$(python_folder);%PATH%
+        $(Build.SourcesDirectory)\$(python_folder)\python.exe -m pytest
       displayName: 'Run tests'
-      continueOnError: false  # ❗ Fails pipeline if tests fail
-
-    - task: PublishTestResults@2
-      condition: succeededOrFailed()
-      inputs:
-        testResultsFiles: '**/test-results.xml'
-        testRunTitle: 'Python Test Results'
