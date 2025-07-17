@@ -1,10 +1,17 @@
 trigger:
   branches:
     include:
-      - main
+      - master
+  paths:
+    exclude:
+      - azure-pipelines.yml
+      - README.md
+      - docs/**
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: MyFreePool
+  demands:
+    - agent -equals agent2
 
 variables:
   pythonVersion: '3.11'
