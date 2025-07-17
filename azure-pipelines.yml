@@ -9,31 +9,41 @@ pool:
     - agent -equals agent2
 
 variables:
-  python_version: '3.11.9'
+  python_version: '3.11'
 
 stages:
 - stage: BuildAndTest
   displayName: Build and Test
   jobs:
   - job: Build
-    displayName: 'Install Python & Run Tests'
+    displayName: 'Install Python and Run Tests'
     steps:
+    
+    - powershell: |
+        Write-Host "Installing Chocolatey if not present..."
+        if (-not (Get-Command choco -ErrorAction SilentlyContinue)) {
+          Set-ExecutionPolicy Bypass -Scope Process -Force
+          [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072
+          Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
+        }
+
+        Write-Host "Installing Python $(python_version)..."
+        choco install python --version=$(python_version) -y --force
+
+        $pythonPath = (Get-Command python).Path
+        Write-Host "Python installed at: $pythonPath"
+      displayName: 'Install Python via Chocolatey'
 
     - powershell: |
-        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$(python_version)/python-$(python_version)-amd64.exe" -OutFile "python-installer.exe"
-        Start-Process -FilePath "python-installer.exe" -ArgumentList '/quiet InstallAllUsers=0 PrependPath=1 Include_test=0' -Wait
         python --version
-      displayName: 'Install Python locally (no registry access)'
-
-    - script: |
         python -m venv venv
-        venv\Scripts\activate
+        .\venv\Scripts\activate
         python -m pip install --upgrade pip
         pip install -r requirements.txt
       displayName: 'Install dependencies'
 
-    - script: |
-        venv\Scripts\activate
+    - powershell: |
+        .\venv\Scripts\activate
         pytest
       displayName: 'Run tests'
       continueOnError: false
