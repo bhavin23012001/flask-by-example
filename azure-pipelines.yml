@@ -6,10 +6,11 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2  # ✅ Corrected demand syntax
+    - agent.name -equals agent2  # ✅ Use correct demand syntax
 
 variables:
   python_version: '3.11'
+  venv_dir: 'venv'
 
 stages:
 - stage: BuildAndTest
@@ -24,14 +25,20 @@ stages:
         addToPath: true
 
     - script: |
-        python -m venv venv
-        venv\Scripts\activate
+        python -m venv $(venv_dir)
+        call $(venv_dir)\Scripts\activate.bat
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-      displayName: 'Install dependencies'
+      displayName: 'Install dependencies (Windows)'
 
     - script: |
-        venv\Scripts\activate
-        pytest
+        call $(venv_dir)\Scripts\activate.bat
+        pytest --junitxml=test-results.xml
       displayName: 'Run tests'
-      continueOnError: false  # set to true if you don't want pipeline to fail on test failure
+      continueOnError: false  # ❗ Fails pipeline if tests fail
+
+    - task: PublishTestResults@2
+      condition: succeededOrFailed()
+      inputs:
+        testResultsFiles: '**/test-results.xml'
+        testRunTitle: 'Python Test Results'
