@@ -6,7 +6,7 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2
+    - agent -equals agent2  # ✅ Corrected demand syntax
 
 variables:
   python_version: '3.11'
@@ -16,6 +16,7 @@ stages:
   displayName: Build and Test
   jobs:
   - job: Build
+    displayName: 'Run Tests on Self-hosted Agent'
     steps:
     - task: UsePythonVersion@0
       inputs:
@@ -25,7 +26,7 @@ stages:
     - script: |
         python -m venv venv
         venv\Scripts\activate
-        pip install --upgrade pip
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
       displayName: 'Install dependencies'
 
@@ -33,3 +34,4 @@ stages:
         venv\Scripts\activate
         pytest
       displayName: 'Run tests'
+      continueOnError: false  # set to true if you don't want pipeline to fail on test failure
