@@ -6,32 +6,34 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2  # Make sure this matches your agent capabilities
+    - agent -equals agent2
 
 variables:
-  python_version: '3.11'
+  python_version: '3.11.9'
 
 stages:
 - stage: BuildAndTest
   displayName: Build and Test
   jobs:
   - job: Build
-    displayName: 'Run Tests on Self-hosted Agent'
+    displayName: 'Install Python & Run Tests'
     steps:
-    - task: UsePythonVersion@0
-      inputs:
-        versionSpec: '$(python_version)'
-        addToPath: true
+
+    - powershell: |
+        Invoke-WebRequest -Uri "https://www.python.org/ftp/python/$(python_version)/python-$(python_version)-amd64.exe" -OutFile "python-installer.exe"
+        Start-Process -FilePath "python-installer.exe" -ArgumentList '/quiet InstallAllUsers=0 PrependPath=1 Include_test=0' -Wait
+        python --version
+      displayName: 'Install Python locally (no registry access)'
 
     - script: |
         python -m venv venv
-        call venv\Scripts\activate.bat
-        python -m pip install --upgrade pip setuptools wheel
+        venv\Scripts\activate
+        python -m pip install --upgrade pip
         pip install -r requirements.txt
-      displayName: 'Create venv and install dependencies'
+      displayName: 'Install dependencies'
 
     - script: |
-        call venv\Scripts\activate.bat
+        venv\Scripts\activate
         pytest
       displayName: 'Run tests'
       continueOnError: false
