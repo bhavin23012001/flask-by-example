@@ -6,36 +6,32 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2
+    - agent -equals agent2  # Make sure this matches your agent capabilities
 
 variables:
-  python_version: '3.11.9'
-  python_folder: 'python-portable'
+  python_version: '3.11'
 
 stages:
 - stage: BuildAndTest
   displayName: Build and Test
   jobs:
   - job: Build
-    displayName: 'Install and Test Python App'
+    displayName: 'Run Tests on Self-hosted Agent'
     steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '$(python_version)'
+        addToPath: true
 
     - script: |
-        echo "Downloading Python $(python_version)..."
-        curl -L -o python-embed.zip https://www.python.org/ftp/python/$(python_version)/python-$(python_version)-embed-amd64.zip
-        mkdir $(python_folder)
-        tar -xf python-embed.zip -C $(python_folder)
-      displayName: 'Download and extract portable Python'
+        python -m venv venv
+        call venv\Scripts\activate.bat
+        python -m pip install --upgrade pip setuptools wheel
+        pip install -r requirements.txt
+      displayName: 'Create venv and install dependencies'
 
     - script: |
-        set PATH=$(Build.SourcesDirectory)\$(python_folder);%PATH%
-        echo "Installing pip..."
-        curl -O https://bootstrap.pypa.io/get-pip.py
-        $(Build.SourcesDirectory)\$(python_folder)\python.exe get-pip.py
-        $(Build.SourcesDirectory)\$(python_folder)\python.exe -m pip install -r requirements.txt
-      displayName: 'Install pip and dependencies'
-
-    - script: |
-        set PATH=$(Build.SourcesDirectory)\$(python_folder);%PATH%
-        $(Build.SourcesDirectory)\$(python_folder)\python.exe -m pytest
+        call venv\Scripts\activate.bat
+        pytest
       displayName: 'Run tests'
+      continueOnError: false
