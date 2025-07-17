@@ -11,7 +11,7 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent.name -equals agent2  # fixed syntax
+    - agent -equals agent2  # fixed syntax
 
 variables:
   pythonVersion: '3.11'
