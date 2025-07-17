@@ -6,7 +6,7 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent.name -equals agent2  # ✅ Use correct demand syntax
+    - agent -equals agent2  # ✅ Use correct demand syntax
 
 variables:
   python_version: '3.11'
