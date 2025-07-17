@@ -11,22 +11,34 @@ trigger:
 pool:
   name: MyFreePool
   demands:
-    - agent -equals agent2
+    - agent.name -equals agent2  # fixed syntax
 
 variables:
   pythonVersion: '3.11'
 
 steps:
-# - task: UsePythonVersion@0
-#   inputs:
-#     versionSpec: '$(pythonVersion)'
-#     addToPath: true
-
+# Step 1: Install Python on self-hosted agent if missing
 - script: |
+    echo Checking for Python...
+    where python || (
+      echo Python not found. Installing...
+      curl -L -o python-installer.exe https://www.python.org/ftp/python/3.11.8/python-3.11.8-amd64.exe
+      start /wait python-installer.exe /quiet InstallAllUsers=1 PrependPath=1 Include_test=0
+    )
+    set PATH=%ProgramFiles%\Python311;%ProgramFiles%\Python311\Scripts;%PATH%
+    python --version
+    pip --version
+  displayName: "Install Python if missing"
+
+# Step 2: Install Python dependencies
+- script: |
+    set PATH=%ProgramFiles%\Python311;%ProgramFiles%\Python311\Scripts;%PATH%
     python -m pip install --upgrade pip
     pip install -r requirements.txt
   displayName: 'Install dependencies'
 
+# Step 3: Run tests
 - script: |
+    set PATH=%ProgramFiles%\Python311;%ProgramFiles%\Python311\Scripts;%PATH%
     pytest
   displayName: 'Run tests'
